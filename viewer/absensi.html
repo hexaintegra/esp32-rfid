@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contoh Tabel Supabase (REST)</title>
+  <style>
+    body { font-family: system-ui, Arial; padding: 24px; background:#f7f7fb; color:#111 }
+    table { border-collapse: collapse; width:100%; background:white; box-shadow:0 1px 4px rgba(0,0,0,.08) }
+    th, td { padding:10px 12px; border-bottom:1px solid #efefef; text-align:left; }
+    th { background:#fafafa; font-weight:600; }
+    .loader { margin:16px 0; }
+    .error { color:crimson; }
+  </style>
+</head>
+<body>
+  <h2>Data dari Supabase (REST API)</h2>
+  <p id="info">Mengambil data...</p>
+  <div class="loader" id="loader">⏳</div>
+  <div id="output"></div>
+
+  <script>
+    // Ganti nilai berikut:
+    const PROJECT_URL = "https://xxxxxxxxxxxxxxxx.supabase.co"; // tanpa slash di akhir
+    const ANON_KEY = "sb_publishable_m-xxxxxxxxxxxxxxxxxxxxxxxxxx";
+    const TABLE = "absensi"; // nama tabel di Supabase
+
+    // Contoh endpoint REST (select semua kolom)
+    const endpoint = `${PROJECT_URL}/rest/v1/${TABLE}?select=*`;
+
+    async function fetchData() {
+      const info = document.getElementById('info');
+      const loader = document.getElementById('loader');
+      const output = document.getElementById('output');
+      info.textContent = 'Mengambil data dari Supabase...';
+      loader.style.display = 'inline';
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'apikey': ANON_KEY,
+            'Authorization': 'Bearer ' + ANON_KEY,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+
+        const data = await res.json();
+        loader.style.display = 'none';
+        info.textContent = `Ditemukan ${data.length} baris.`;
+
+        if (data.length === 0) {
+          output.innerHTML = '<em>Tidak ada data.</em>';
+          return;
+        }
+
+        // Ambil header kolom dari object pertama
+        const cols = Object.keys(data[0]);
+
+        // Buat tabel
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const trh = document.createElement('tr');
+        cols.forEach(c => {
+          const th = document.createElement('th');
+          th.textContent = c;
+          trh.appendChild(th);
+        });
+        thead.appendChild(trh);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          cols.forEach(c => {
+            const td = document.createElement('td');
+            // Tampilkan JSON string jika value bukan primitif
+            const val = row[c];
+            td.textContent = (val === null || val === undefined) ? '' : (typeof val === 'object' ? JSON.stringify(val) : val);
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        output.innerHTML = '';
+        output.appendChild(table);
+
+      } catch (err) {
+        loader.style.display = 'none';
+        info.textContent = 'Gagal mengambil data.';
+        output.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+        console.error(err);
+      }
+    }
+
+    // Panggil saat load
+    fetchData();
+  </script>
+</body>
+</html>
